@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Local Todo List</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>My Todo List</h1>
+        <form id="todoForm">
+            <input type="text" id="taskInput" placeholder="Enter a task...">
+            <button type="submit">Add Task</button>
+        </form>
+        <ul id="taskList"></ul>
+    </div>
+
+    <script>
+        document.getElementById('todoForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const taskInput = document.getElementById('taskInput');
+            const taskText = taskInput.value.trim();
+
+            if (taskText) {
+                try {
+                    await fetch('/api/add-task', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ text: taskText })
+                    });
+
+                    // Clear input and refresh tasks
+                    taskInput.value = '';
+                    await loadTasks();
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Failed to add task!');
+                }
+            }
+        });
+
+        async function loadTasks() {
+            try {
+                const response = await fetch('/api/tasks');
+                const tasks = await response.json();
+
+                const taskList = document.getElementById('taskList');
+                taskList.innerHTML = tasks.map(task => `
+                    <li>
+                        ${task.text}
+                        <button onclick="deleteTask(${task.id})">Delete</button>
+                    </li>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading tasks:', error);
+            }
+        }
+
+        async function deleteTask(id) {
+            try {
+                await fetch(`/api/delete-task/${id}`, { method: 'DELETE' });
+                await loadTasks();
+            } catch (error) {
+                console.error('Error deleting task:', error);
+                alert('Failed to delete task!');
+            }
+        }
+
+        // Load tasks initially
+        loadTasks();
+    </script>
+</body>
+</html>
